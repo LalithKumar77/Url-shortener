@@ -1,0 +1,486 @@
+/* Base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', 'Segoe UI', 'Roboto', sans-serif;
+  }
+  
+  body {
+    background: linear-gradient(45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* Animated background bubbles */
+  .bubbles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+  }
+  
+  .bubble {
+    position: absolute;
+    bottom: -100px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    animation: rise 10s infinite ease-in;
+  }
+  
+  .bubble:nth-child(1) {
+    width: 40px;
+    height: 40px;
+    left: 10%;
+    animation-duration: 8s;
+  }
+  
+  .bubble:nth-child(2) {
+    width: 20px;
+    height: 20px;
+    left: 20%;
+    animation-duration: 5s;
+    animation-delay: 1s;
+  }
+  
+  .bubble:nth-child(3) {
+    width: 50px;
+    height: 50px;
+    left: 35%;
+    animation-duration: 7s;
+    animation-delay: 2s;
+  }
+  
+  .bubble:nth-child(4) {
+    width: 80px;
+    height: 80px;
+    left: 50%;
+    animation-duration: 11s;
+    animation-delay: 0s;
+  }
+  
+  .bubble:nth-child(5) {
+    width: 35px;
+    height: 35px;
+    left: 55%;
+    animation-duration: 6s;
+    animation-delay: 1s;
+  }
+  
+  .bubble:nth-child(6) {
+    width: 45px;
+    height: 45px;
+    left: 65%;
+    animation-duration: 8s;
+    animation-delay: 3s;
+  }
+  
+  .bubble:nth-child(7) {
+    width: 90px;
+    height: 90px;
+    left: 70%;
+    animation-duration: 12s;
+    animation-delay: 2s;
+  }
+  
+  .bubble:nth-child(8) {
+    width: 25px;
+    height: 25px;
+    left: 80%;
+    animation-duration: 6s;
+    animation-delay: 2s;
+  }
+  
+  .bubble:nth-child(9) {
+    width: 15px;
+    height: 15px;
+    left: 90%;
+    animation-duration: 5s;
+    animation-delay: 1s;
+  }
+  
+  .bubble:nth-child(10) {
+    width: 60px;
+    height: 60px;
+    left: 95%;
+    animation-duration: 10s;
+    animation-delay: 4s;
+  }
+  
+  @keyframes rise {
+    0% {
+      bottom: -100px;
+      transform: translateX(0) scale(1);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateX(100px) scale(1.2);
+      opacity: 0.5;
+    }
+    100% {
+      bottom: 1080px;
+      transform: translateX(-200px) scale(0.8);
+      opacity: 0;
+    }
+  }
+  
+  /* Main container */
+  .main {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    padding: 2.5rem;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    transform: translateY(0);
+    transition: transform 0.5s ease, box-shadow 0.5s ease;
+  }
+  
+  .main:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 35px 60px rgba(0, 0, 0, 0.2);
+  }
+  
+  .main::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff3e00, #8e2de2, #4a00e0, #3f5efb);
+    background-size: 300% 300%;
+    animation: border-glow 3s linear infinite;
+  }
+  
+  @keyframes border-glow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  h1 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(45deg, #3f5efb, #6d5dfc, #8e2de2, #a960ee);
+    background-size: 300% 300%;
+    animation: text-gradient 5s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 5px 15px rgba(78, 78, 204, 0.1);
+  }
+  
+  @keyframes text-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .description {
+    color: #555;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    line-height: 1.5;
+  }
+  
+  /* Input styling */
+  .input-container {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+  
+  input {
+    width: 100%;
+    padding: 1.2rem 1.5rem;
+    font-size: 1rem;
+    border: 2px solid #e1e1e1;
+    border-radius: 12px;
+    background: #f9f9f9;
+    transition: all 0.3s ease;
+    outline: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  }
+  
+  input:focus {
+    border-color: #6d5dfc;
+    background: #fff;
+    box-shadow: 0 8px 15px rgba(109, 93, 252, 0.15);
+    transform: scale(1.01);
+  }
+  
+  input::placeholder {
+    color: #aaa;
+    transition: color 0.3s ease;
+  }
+  
+  input:focus::placeholder {
+    color: #6d5dfc;
+  }
+  
+  /* Button styling */
+  button {
+    position: relative;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: linear-gradient(45deg, #3f5efb, #6d5dfc, #8e2de2);
+    background-size: 200% 200%;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(78, 78, 204, 0.3);
+    margin: 0.5rem;
+    animation: button-gradient 5s ease infinite;
+  }
+  
+  @keyframes button-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  button:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(78, 78, 204, 0.4);
+  }
+  
+  button:active {
+    transform: translateY(0);
+  }
+  
+  /* Ripple effect */
+  button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+  }
+  
+  @keyframes ripple {
+    0% {
+      transform: scale(0, 0);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(20, 20);
+      opacity: 0;
+    }
+  }
+  
+  button:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+  }
+  
+  /* Glow effect on hover */
+  button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #3f5efb, #6d5dfc, #8e2de2);
+    background-size: 200% 200%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 12px;
+    filter: blur(15px);
+    z-index: -1;
+  }
+  
+  button:hover::before {
+    opacity: 0.7;
+  }
+  
+  /* Copy button */
+  .copy-button {
+    background: linear-gradient(45deg, #11998e, #38ef7d);
+    background-size: 200% 200%;
+    animation: copy-gradient 5s ease infinite;
+    box-shadow: 0 5px 15px rgba(56, 239, 125, 0.3);
+  }
+  
+  @keyframes copy-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .copy-button:hover {
+    box-shadow: 0 10px 20px rgba(56, 239, 125, 0.4);
+  }
+  
+  .copy-button::before {
+    background: linear-gradient(45deg, #11998e, #38ef7d);
+    background-size: 200% 200%;
+  }
+  
+  /* Result container */
+  .result-container {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: rgba(249, 250, 251, 0.8);
+    border-radius: 12px;
+    border: 2px dashed #8e2de2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .result-container:hover {
+    border-color: #3f5efb;
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .result-url {
+    font-size: 1.1rem;
+    color: #4a00e0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 1rem;
+    position: relative;
+  }
+  
+  .result-url::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #3f5efb, #8e2de2);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+    transform-origin: left;
+  }
+  
+  .result-container:hover .result-url::after {
+    transform: scaleX(1);
+  }
+  
+  /* Error message */
+  .error {
+    color: #ff3e00;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+  
+  /* Loading spinner */
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  /* Success animation */
+  .success-animation {
+    position: relative;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+  }
+  
+  .success-animation::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background: rgba(56, 239, 125, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    animation: success-pulse 1s ease-out;
+  }
+  
+  @keyframes success-pulse {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 480px) {
+    .main {
+      padding: 2rem 1.5rem;
+    }
+    
+    button {
+      width: 100%;
+      margin: 0.5rem 0;
+    }
+    
+    h1 {
+      font-size: 2rem;
+    }
+  }
