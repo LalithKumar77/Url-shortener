@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const urlSchema = mongoose.Schema({
+const urlSchema = new mongoose.Schema({
     shortId: {
         type: String,
         required: true,
@@ -10,10 +10,32 @@ const urlSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    history: [ {timestamp: {type: Number}}],
-},{timestamps: true});
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
+    history: [{ timestamp: { type: Number } }],
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    password:{
+        type:String,
+        default: null
+    },
+    expireAt:{
+        type: Date,
+        default:null
+    }
+}, { timestamps: true });
+
+// TTL index for guest URLs (user: null)
+urlSchema.index(
+    { createdAt: 1 },
+    { expireAfterSeconds: 1800, partialFilterExpression: { user: null } }
+);
 
 const Url = mongoose.model('Url', urlSchema);
-
 
 export default Url;

@@ -4,20 +4,28 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "build": "echo 'No Build step required'"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "argon2": "^0.43.1",
+    "chalk": "^5.4.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "maxmind": "^5.0.0",
     "mongoose": "^8.9.5",
+    "morgan": "^1.10.0",
     "nanoid": "^5.0.9",
+    "nodemailer": "^7.0.5",
     "shortid": "^2.2.17"
   },
   "engines": {

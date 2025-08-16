@@ -1,23 +1,4 @@
-/* Base styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', 'Segoe UI', 'Roboto', sans-serif;
-  }
-  
-  body {
-    background: linear-gradient(45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    overflow: hidden;
-    position: relative;
-  }
-  
+
   @keyframes gradient {
     0% {
       background-position: 0% 50%;
@@ -30,7 +11,7 @@
     }
   }
   
-  /* Animated background bubbles */
+
   .bubbles {
     position: absolute;
     width: 100%;
@@ -147,7 +128,7 @@
     }
   }
   
-  /* Main container */
+
   .main {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(10px);

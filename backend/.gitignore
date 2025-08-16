@@ -1,3 +1,8 @@
 .vercel
 node_modules/
 .env
+docs/
+GeoLite2/
+db/GeoLite2-City.mmdb
+.vscode/
+dist/

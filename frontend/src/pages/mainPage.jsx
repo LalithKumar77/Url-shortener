@@ -1,7 +1,8 @@
 import  { useState } from "react";
 import axios from "axios";
-import "./mainPage.css";
-const MainPage = () => {
+// import "./mainPage.css";
+
+const ShortenerForm = () => {
   const [shortUrl, setShortUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -85,4 +86,16 @@ const MainPage = () => {
   );
 };
 
+
+
+
+
+
+const MainPage = () => {
+  return (
+    <>
+      <ShortenerForm />
+    </>
+  );
+};
 export default MainPage;
