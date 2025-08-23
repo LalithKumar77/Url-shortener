@@ -16,3 +16,13 @@ export async function shortenUrl(url){
     }
 }
 
+export async function getUrlsStats() {
+    console.log("entered Urls stats");
+    try{
+        const response = await axios.get(`${API_URL}/api/user/urls`, { withCredentials: true });
+        return response.data;
+    }catch(error){
+        console.error("Error fetching URL stats:", error);
+        throw error;
+    }
+}

@@ -4,7 +4,7 @@ import axios from 'axios';
 import InputField from '../../components/InputField'; // Adjust import path as needed
 
 // Backend API base URL
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({

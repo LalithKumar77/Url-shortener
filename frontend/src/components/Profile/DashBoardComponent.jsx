@@ -1,14 +1,16 @@
-import  { useState } from 'react';
+import  { useState, useEffect} from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
  PieChart, Pie, Cell
 } from 'recharts';
 import { 
-  Link, Eye, MousePointer, TrendingUp,  Globe,
+  Link, Eye, EyeOff, MousePointer, TrendingUp,  Globe,
   Copy, ExternalLink, MoreVertical, Plus, Search, Filter,
   X, Lock, Calendar as Tag,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { getUrlsStats } from '../../api/url';
+
 
 const DashboardComponent = () => {
   const [timeRange, setTimeRange] = useState('7d');
@@ -43,44 +45,68 @@ const DashboardComponent = () => {
     { name: 'Others', value: 5, color: '#6B7280' }
   ];
 
-  const recentUrls = [
-    {
-      id: 1,
-      originalUrl: 'https://example.com/very-long-url-that-needs-shortening',
-      shortUrl: 'short.ly/abc123',
-      clicks: 245,
-      createdAt: '2024-01-15',
-      status: 'active'
-    },
-    {
-      id: 2,
-      originalUrl: 'https://github.com/user/awesome-project',
-      shortUrl: 'short.ly/def456',
-      clicks: 128,
-      createdAt: '2024-01-14',
-      status: 'active'
-    },
-    {
-      id: 3,
-      originalUrl: 'https://docs.google.com/document/d/1234567890',
-      shortUrl: 'short.ly/ghi789',
-      clicks: 89,
-      createdAt: '2024-01-13',
-      status: 'active'
-    },
-    {
-      id: 4,
-      originalUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      shortUrl: 'short.ly/jkl012',
-      clicks: 67,
-      createdAt: '2024-01-12',
-      status: 'expired'
-    }
-  ];
+  const [recentUrls, setRecentUrls] = useState([]);
+  const [loadingUrls, setLoadingUrls] = useState(false);
+  const [urlsError, setUrlsError] = useState(null);
+  const [revealedPwId, setRevealedPwId] = useState(null);
+  const [urls, setUrls] = useState(0);
+  const [totalClicks, setTotalClicks] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    const fetchUrls = async () => {
+      setLoadingUrls(true);
+      setUrlsError(null);
+      try {
+        const res = await getUrlsStats();
+        setUrls(res.length);
+        const mapped = (Array.isArray(res) ? res : (res.data || [])).map((item, idx) => {
+          // console.log(item.createdAt);
+          let isExpired = false;
+          const hasExpiry = item.expireAt != null;
+          if (hasExpiry) {
+            const expireTs = Date.parse(item.expireAt);
+            isExpired = !isNaN(expireTs) ? expireTs < Date.now() : false;
+          }
+          const count = Array.isArray(item.history) ? item.history.length : 0;
+          setTotalClicks(prevCount => prevCount + count);
+          return {
+            id: item.shortId || item.id || idx,
+            originalUrl: item.redirectUrl || '',
+            shortUrl: item.shortId || '',
+            clicks: Array.isArray(item.history) ? item.history.length : 0,
+            createdAt: item.createdAt || '',
+            status: isExpired ? 'expired' : 'active',
+            expireAt: hasExpiry ? item.expireAt : null,
+            passwordProtected: !!item.passwordProtected,  
+            password: item.password || ''
+          };
+        });
+        if (mounted) setRecentUrls(mapped);
+      } catch (err) {
+        console.error('Error fetching recent urls', err);
+        if (mounted) setUrlsError('Failed to load URLs');
+      } finally {
+        if (mounted) setLoadingUrls(false);
+      }
+    };
+
+    fetchUrls();
+    return () => { mounted = false; };
+  }, []);
 
   const handleCopyUrl = (url) => {
     navigator.clipboard.writeText(url);
     // You would typically show a toast notification here
+  };
+
+  const toggleReveal = (id) => {
+    setRevealedPwId(prev => prev === id ? null : id);
+  };
+
+  const copyPassword = (pw) => {
+    if (!pw) return;
+    navigator.clipboard.writeText(pw);
+    // optionally show toast
   };
 
   const handleCreateUrl = () => {
@@ -175,14 +201,14 @@ const DashboardComponent = () => {
           <StatCard
             icon={Link}
             title="Total URLs"
-            value={47}
+            value={urls}
             change={12}
             color="blue"
           />
           <StatCard
             icon={MousePointer}
             title="Total Clicks"
-            value={1234}
+            value={totalClicks}
             change={8}
             color="green"
           />
@@ -278,7 +304,7 @@ const DashboardComponent = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-160">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -298,12 +324,28 @@ const DashboardComponent = () => {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Password
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {recentUrls.map((url) => (
+                {loadingUrls ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading URLs...</td>
+                  </tr>
+                ) : urlsError ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-red-500">{urlsError}</td>
+                  </tr>
+                ) : recentUrls.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No URLs found</td>
+                  </tr>
+                ) : (
+                  recentUrls.map((url) => (
                   <tr key={url.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -331,7 +373,7 @@ const DashboardComponent = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-500">
-                        {new Date(url.createdAt).toLocaleDateString()}
+                        {url.createdAt}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -347,6 +389,39 @@ const DashboardComponent = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
+                        {url.passwordProtected ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-mono text-gray-800">
+                              {revealedPwId === url.id && url.password ? url.password : '••••••'}
+                            </span>
+                            <button
+                              onClick={() => url.password ? toggleReveal(url.id) : null}
+                              type="button"
+                              aria-label={revealedPwId === url.id ? 'Hide password' : 'Show password'}
+                              title={url.password ? (revealedPwId === url.id ? 'Hide password' : 'Show password') : 'Password not provided by backend'}
+                              className={`p-1 ${url.password ? 'text-gray-500 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                              disabled={!url.password}
+                            >
+                              {revealedPwId === url.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => url.password ? copyPassword(url.password) : null}
+                              type="button"
+                              aria-label="Copy password"
+                              title={url.password ? 'Copy password' : 'Password not provided by backend'}
+                              className={`p-1 ${url.password ? 'text-gray-500 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                              disabled={!url.password}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
                         <button className="text-gray-400 hover:text-gray-600">
                           <ExternalLink className="w-4 h-4" />
                         </button>
@@ -356,29 +431,12 @@ const DashboardComponent = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                ))) }
               </tbody>
             </table>
           </div>
 
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <span className="text-sm text-gray-500">
-              Showing 4 of 47 URLs
-            </span>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                Previous
-              </button>
-              <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-                1
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                2
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                Next
-              </button>
-            </div>
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    port: 5000,
     proxy: {
   // Proxy short-id routes (e.g. /abc123) to backend so redirects work in dev.
   // Exclude known frontend routes (login, profile, dashboard, etc.) so they

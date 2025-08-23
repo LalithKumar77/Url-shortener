@@ -5,7 +5,7 @@ import InputField from "../../components/InputField";
 import { Link } from "react-router-dom";
 
 const ForgotPasswordPage = () => {
-  const BASEURL = "http://localhost:3000/api/auth/";
+  const BASEURL = import.meta.env.VITE_API_URL+"/api/auth";
   const [gmail, setGmail] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
