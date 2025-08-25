@@ -7,7 +7,7 @@ export async function generateShortUrl(req,res) {
     const userId = req.user.id; 
     const shortId = shortid();
     const body = req.body;
-    const baseUrl = `http://localhost:5173`;
+    const baseUrl = process.env.FRONTEND_URL;
     if(!body.url){
         return res.status(400).json({error: 'Url is required'});
     }
@@ -61,9 +61,10 @@ export async function getUrlsByUserId(req,res) {
             history: url.history.map( h =>({
                 date : new Date(h.timestamp).toLocaleString(),
             })),
-            createdAt: new Date(url.createdAt).toLocaleString(),
-            expireAt: new Date(url.expireAt).toLocaleString(),
-            passwordProtected: !!url.password
+            createdAt: (new Date(url.createdAt).toLocaleString()).split(",")[0],
+            expireAt: url.expireAt ? (new Date(url.expireAt).toLocaleString()).split(",")[0] : null,
+            passwordProtected: !!url.password,
+            password: url.password
         }));
         return res.status(200).json(reponse);
     } catch (error) {
