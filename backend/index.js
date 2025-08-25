@@ -17,11 +17,15 @@ import helmet from 'helmet';
 import userRouter from "./routes/userRoute.js"
 
 const app = express();
-const PORT = 3000 || process.env.PORT ;
+const PORT = process.env.PORT || 3000;
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5000',
+].filter(Boolean);
 app.use(cors(
     {
-        origin: ['http://localhost:3000','http://localhost:5173'],
+        origin: allowedOrigins,
         credentials: true,
     }
 ));
@@ -49,11 +53,12 @@ app.use((req, res, next) => {
     next(); // Move to next middleware or route
 });
 
-// app.get('/', (req, res) => {
-//     return res.send('Welcome to URL Shortener');
-// });
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, 'dist')));
+app.get('/', (req, res) => {
+    console.log(`User Agent: ${req.headers['user-agent']}`);
+    return res.send('Welcome to URL Shortener');
+});
+// const __dirname = path.resolve();
+// app.use(express.static(path.join(__dirname, 'dist')));
 
 // app.get('*', (req, res) => {
 //     res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
@@ -64,10 +69,6 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/', urlRoute);
 app.use('/api/auth', authRoute);
 app.use('/api', userRouter);
-
-
-
-
 
 
 
