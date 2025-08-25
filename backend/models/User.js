@@ -15,10 +15,24 @@ const userSchema = new mongoose.Schema({
         type:String,
         required: true
     },
-    refreshToken: {
-      type: String,
-      default: null,
-    },
+    // refreshToken: {
+    //   type: String,
+    //   default: null,
+    // },
+    // Support multiple refresh tokens (one per device/session)
+    refreshTokens: [
+      {
+        token: { type: String },
+        createdAt: { type: Date, default: Date.now },
+        device: {
+          deviceType: { type: String, default: null },
+          os: { type: String, default: null },
+          browser: { type: String, default: null },
+          ip: { type: String, default: null },
+          location: { type: String, default: null }
+        }
+      }
+    ],
     createdAt: {
         type: Date,
         default: Date.now
