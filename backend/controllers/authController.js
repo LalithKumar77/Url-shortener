@@ -4,9 +4,9 @@ import { generateToken } from "../utils/jwtUtils.js"
 import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
 import Url from "../models/urlModel.js"; // Import the Url model
-
-
-
+import { UAParser } from "ua-parser-js";
+import getGeoInfo from "../utils/ipchecking.js";
+import Check from "../models/check.js";
  async function createUserHandler(req, res) {
     const { username, password, gmail } = req.body;
 
@@ -69,20 +69,49 @@ async function loginHandler(req, res) {
         const accessToken = generateToken(payload, process.env.JWT_SECRET, '15m');
         const refreshToken = generateToken(payload, process.env.JWT_REFRESH_SECRET, '7d');
 
-        user.refreshToken = refreshToken;
+        const userAgent = req.headers["user-agent"];
+        const parser = new UAParser(userAgent);
+        const result = parser.getResult();
+            const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;        
+            console.log(`User Ip ${ip}`);        
+        const details = await getGeoInfo(req);
+        const location = details.city + details.country;
+        const userDevice = {
+            deviceType: result.device.type || "Desktop", 
+            os: result.os.name, 
+            browser: result.browser.name,
+            ip: ip,
+            location: location
+        };
+        // store refresh token in user's refreshTokens array (one entry per device/session)
+        user.refreshTokens = user.refreshTokens || [];
+        user.refreshTokens.push({
+            token: refreshToken,
+            createdAt: Date.now(),
+            device: userDevice
+        });
+        // keep top-level refreshToken for backward compatibility
+        // user.refreshToken = refreshToken;
         await user.save();
 
+        const check = new Check({
+            user: user._id,
+            Details: [userDevice]
+        });
+        await check.save();
+
+        const isProd = process.env.PRODUCTION === 'true';
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
-            secure: false,
+            secure: isProd,
             maxAge: 15 * 60 * 1000,
-            sameSite: 'lax'
+            sameSite: isProd ? 'none' : 'lax'
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: false,
+            secure: isProd,
             maxAge: 7 * 24 * 60 * 60 * 1000,
-            sameSite: 'lax'
+            sameSite: isProd ? 'none' : 'lax'
         });
         const date = new Date(user.createdAt).toLocaleString();
         const urlCount = await Url.countDocuments({ user: user._id });
@@ -97,6 +126,7 @@ async function loginHandler(req, res) {
             },
         });
     } catch (err) {
+        console.log("Error during login:", err);
         return res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -121,8 +151,9 @@ async function forgotPasswordHandler(req, res) {
         user.resetPasswordToken = HashToken;
         user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; 
         await user.save();
-
-        const resetURL = `http://localhost:5173/reset-password?token=${resetToken}`;
+        const isProd = process.env.PRODUCTION === 'true';
+        const BaseUrl = isProd? process.env.FRONTEND_URL : 'http://localhost:5000';
+        const resetURL = `${BaseUrl}/reset-password?token=${resetToken}`;
 
         const EmailHtml = `
             <!DOCTYPE html>
@@ -304,24 +335,33 @@ async function updatePassword(req,res) {
 }
 
 async function signoutHandler(req,res){
-    try{
-        res.clearCookie('accessToken',{
-             httpOnly: true,
-            secure: true,
-            sameSite: 'lax'
+    try {
+        // Check and remove refresh token from DB
+        const refreshToken = req.cookies?.refreshToken;
+        if (refreshToken) {
+            await User.updateOne(
+                { 'refreshTokens.token': refreshToken },
+                { $pull: { refreshTokens: { token: refreshToken } } }
+            );
+        }
+        // Clear cookies (match options used when setting them)
+        const isProd = process.env.PRODUCTION === 'true';
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax'
         });
-
-        res.clearCookie('refreshToken',{
-             httpOnly: true,
-            secure: true,
-            sameSite: 'lax'
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax'
         });
-        return res.status(200).json({message: "Sign out Successfully done"});
-    }catch(error){
+        return res.status(200).json({ message: "Sign out Successfully done" });
+    } catch (error) {
         console.error('Signout error:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
-}
+ }
 
 
 async function deleteAccountHandler(req,res){
@@ -341,6 +381,21 @@ async function deleteAccountHandler(req,res){
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+
+async function checkUserLocationDetails(req, res) {
+    try {
+        const geoInfo = await getGeoInfo(req);
+        if (geoInfo.error) {
+            return res.status(500).json({ message: 'Failed to retrieve location information' });
+        }
+        console.log('User location details:', geoInfo);
+        return res.status(200).json(geoInfo);
+    } catch (error) {
+        console.error('Error checking user location details:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
 export {
     createUserHandler,
     loginHandler,
@@ -349,5 +404,6 @@ export {
     resetPasswordHandler,
     updatePassword,
     signoutHandler,
-    deleteAccountHandler
+    deleteAccountHandler,
+    checkUserLocationDetails
 };
