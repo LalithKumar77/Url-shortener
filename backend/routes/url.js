@@ -14,7 +14,7 @@ router.post('/api/url',verifyTokens,generateShortUrl);
 router.all('/:shortId', passwordFormMiddleware, getRedirectUrl);
 
 
-router.post('/api/user/urls', verifyTokens, getUrlsByUserId);
+router.get('/api/user/urls', verifyTokens, getUrlsByUserId);
 router.post('/api/user/url/alias',verifyTokens,createCustomAlias);
 router.post('/api/user/url/password', verifyTokens, createUrlPassword);
 
