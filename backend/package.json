@@ -26,7 +26,8 @@
     "morgan": "^1.10.0",
     "nanoid": "^5.0.9",
     "nodemailer": "^7.0.5",
-    "shortid": "^2.2.17"
+    "shortid": "^2.2.17",
+    "ua-parser-js": "^2.0.4"
   },
   "engines": {
     "node": "22.x"
