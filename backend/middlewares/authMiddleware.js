@@ -25,7 +25,8 @@ async function  verifyTokens(req,res,next){
     }
     console.log("Refresh token is valid", isRefreshTokenValid);
     try {
-        const user = await User.findOne({_id: isRefreshTokenValid.id, refreshToken });
+        // find user where the refreshTokens array contains this token
+        const user = await User.findOne({ _id: isRefreshTokenValid.id, 'refreshTokens.token': refreshToken });
         if(!user){
             console.log('user not found');
             return res.status(403).json({message:"User not found"});
@@ -36,21 +37,28 @@ async function  verifyTokens(req,res,next){
         };
         const newAccessToken = generateToken(payload, process.env.JWT_SECRET, '15m');
         const newRefreshToken = generateToken(payload, process.env.JWT_REFRESH_SECRET, '7d');
-        user.refreshToken = newRefreshToken;
+        // replace the old refresh token in the refreshTokens array with the new one
+        await User.updateOne(
+            { _id: user._id, 'refreshTokens.token': refreshToken },
+            { $set: { 'refreshTokens.$.token': newRefreshToken, 'refreshTokens.$.createdAt': Date.now() } }
+        );
+        // update top-level refreshToken for backward compatibility
+        // user.refreshToken = newRefreshToken;
         await user.save();
         // set new cookies
+        const isProd = process.env.PRODUCTION === 'true';
         res.cookie('accessToken', newAccessToken, {
             httpOnly: true,
-            secure: false, 
-            sameSite: 'lax',
-            maxAge: 15 * 60 * 1000 
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax',
+            maxAge: 15 * 60 * 1000
         });
         res.cookie('refreshToken', newRefreshToken, {
             httpOnly: true,
-            secure: false, 
-            sameSite: 'lax',
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000
-        }); 
+        });
         console.log("Tokens rotated successfully");
         req.user = payload;
         next();
