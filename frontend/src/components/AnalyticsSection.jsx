@@ -1,6 +1,8 @@
-import {  BarChart3, Globe, Smartphone } from 'lucide-react';
+import { BarChart3, Globe, Smartphone, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AnalyticsSection = () => {
+  const navigate = useNavigate();
   const analyticsData = {
     totalClicks: 12547,
     countries: [
@@ -23,7 +25,7 @@ const AnalyticsSection = () => {
             Get detailed insights into your link performance
           </p>
         </div>
-        
+
         <div className="max-w-5xl mx-auto bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-2xl p-8 border border-gray-200">
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-2xl">
@@ -36,7 +38,7 @@ const AnalyticsSection = () => {
               <p className="text-4xl font-bold">{analyticsData.totalClicks.toLocaleString()}</p>
               <p className="text-blue-100 mt-2">+12% from last month</p>
             </div>
-            
+
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-2xl">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -48,7 +50,7 @@ const AnalyticsSection = () => {
               <p className="text-purple-100 mt-2">Desktop: 32%</p>
             </div>
           </div>
-          
+
           <div className="mt-8">
             <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center gap-3">
               <Globe className="w-6 h-6 text-blue-500" />
@@ -76,6 +78,31 @@ const AnalyticsSection = () => {
               ))}
             </div>
           </div>
+
+          {/* Explore Analytics Link */}
+          <div className="mt-12 text-center">
+            <button
+              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg text-lg"
+              onClick={() => {
+                const userData = localStorage.getItem('user');
+                let signedIn = false;
+                if (userData) {
+                  try {
+                    const userObj = JSON.parse(userData);
+                    signedIn = userObj.isSignedIn === true;
+                  } catch { /* error handling */ }
+                }
+                if (signedIn) {
+                  navigate('/dashboard');
+                } else {
+                  navigate('/login');
+                }
+              }}
+            >
+              Explore Analytics <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+
         </div>
       </div>
     </section>
