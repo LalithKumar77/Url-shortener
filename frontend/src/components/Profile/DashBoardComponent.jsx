@@ -6,13 +6,30 @@ import {
 import { 
   Link, Eye, EyeOff, MousePointer, TrendingUp,  Globe,
   Copy, ExternalLink, MoreVertical, Plus, Search, Filter,
-  X, Lock, Calendar as Tag,
+  X, Lock,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { getUrlsStats } from '../../api/url';
+import { createAdvancedUrl } from '../../api/url';
+import { getQrCodeForShortUrl } from '../../api/url';
+import { updateShortUrl } from '../../api/url';
+// Handler to open short URL in new tab
+const handleOpenUrl = (shortUrl) => {
+  window.open(shortUrl, '_blank');
+};
+
+// Handler to delete URL (mock, replace with API call)
+const handleDeleteUrl = (id) => {
+  setRecentUrls(urls => urls.filter(url => url.id !== id));
+  toast.success('URL deleted!', { position: 'top-center' });
+  // For real API: await deleteUrlApi(id); and refresh list
+};
+import { toast } from 'react-toastify';
 
 
 const DashboardComponent = () => {
+  const [qrModal, setQrModal] = useState({ open: false, qr: '', url: '' });
+  const [menuOpenId, setMenuOpenId] = useState(null);
   const [timeRange, setTimeRange] = useState('7d');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -24,6 +41,16 @@ const DashboardComponent = () => {
     password: '',
     category: 'general',
     description: ''
+  });
+  const [showAllUrls, setShowAllUrls] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateFormData, setUpdateFormData] = useState(null);
+  const [updateForm, setUpdateForm] = useState({
+    originalUrl: '',
+    customAlias: '',
+    expirationDate: '',
+    password: ''
   });
 
   // Sample data
@@ -53,19 +80,28 @@ const DashboardComponent = () => {
   const [totalClicks, setTotalClicks] = useState(0);
   useEffect(() => {
     let mounted = true;
-    const fetchUrls = async () => {
+    async function fetchUrls() {
       setLoadingUrls(true);
       setUrlsError(null);
       try {
         const res = await getUrlsStats();
         setUrls(res.length);
+        // Update localStorage 'user' key with urlCount
+        try {
+          const user = JSON.parse(localStorage.getItem('user')) || {};
+          user.urlCount = Array.isArray(res) ? res.length : (res.data?.length || 0);
+          localStorage.setItem('user', JSON.stringify(user));
+        } catch (e) {}
         const mapped = (Array.isArray(res) ? res : (res.data || [])).map((item, idx) => {
-          // console.log(item.createdAt);
           let isExpired = false;
           const hasExpiry = item.expireAt != null;
           if (hasExpiry) {
-            const expireTs = Date.parse(item.expireAt);
-            isExpired = !isNaN(expireTs) ? expireTs < Date.now() : false;
+            const parts = item.expireAt.split('/');
+            if (parts.length === 3) {
+              // DD/MM/YYYY
+              const expireDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); // YYYY-MM-DD
+              isExpired = expireDate < new Date();
+            }
           }
           const count = Array.isArray(item.history) ? item.history.length : 0;
           setTotalClicks(prevCount => prevCount + count);
@@ -84,19 +120,19 @@ const DashboardComponent = () => {
         if (mounted) setRecentUrls(mapped);
       } catch (err) {
         console.error('Error fetching recent urls', err);
+        toast.error('Failed to load URLs', { position: 'top-center', autoClose: 3000 });
         if (mounted) setUrlsError('Failed to load URLs');
       } finally {
         if (mounted) setLoadingUrls(false);
       }
-    };
-
+    }
     fetchUrls();
     return () => { mounted = false; };
   }, []);
 
   const handleCopyUrl = (url) => {
     navigator.clipboard.writeText(url);
-    // You would typically show a toast notification here
+  toast.success('Short URL copied!', { position: 'top-center', autoClose: 2000 });
   };
 
   const toggleReveal = (id) => {
@@ -106,7 +142,7 @@ const DashboardComponent = () => {
   const copyPassword = (pw) => {
     if (!pw) return;
     navigator.clipboard.writeText(pw);
-    // optionally show toast
+  toast.success('Password copied!', { position: 'top-center', autoClose: 2000 });
   };
 
   const handleCreateUrl = () => {
@@ -135,9 +171,28 @@ const DashboardComponent = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Here you would submit the form data to your backend
-    console.log('Creating URL with data:', formData);
-    handleModalClose();
+    // Prepare payload for advanced API
+    const payload = {
+      alias: formData.customAlias || undefined,
+      redirectUrl: formData.originalUrl,
+      password: formData.passwordProtection ? formData.password : undefined,
+      expireAt: formData.expirationDate ? new Date(formData.expirationDate).toISOString() : undefined,
+      qr: true,
+    };
+    createAdvancedUrl(payload)
+      .then((res) => {
+        toast.success(res.message || 'Custom URL created!', { position: 'top-center' });
+        // Optionally show QR code if present
+        if (res.url && res.url.qrCode) {
+          // You can display the QR code in a modal or toast
+          toast.info('QR code generated!', { position: 'top-center' });
+        }
+        handleModalClose();
+        // Optionally refresh dashboard URLs
+      })
+      .catch((err) => {
+        toast.error(err?.response?.data?.message || 'Failed to create custom URL', { position: 'top-center' });
+      });
   };
   const StatCard = ({ icon: Icon, title, value, change, color = 'blue' }) => (
     <div className="bg-white rounded-xl shadow-lg p-6">
@@ -166,6 +221,88 @@ const DashboardComponent = () => {
     change: PropTypes.number,
     color: PropTypes.string
   };
+  const handleViewQrCode = async (shortId) => {
+    setQrModal({ open: true, qr: '', url: shortId });
+    setQrLoading(true);
+    try {
+      const res = await getQrCodeForShortUrl(shortId);
+      if (res && res.qrCode) {
+        setQrModal({ open: true, qr: res.qrCode, url: shortId });
+      } else {
+        toast.error('QR code not found', { position: 'top-center', autoClose: 3000 });
+        setQrModal({ open: false, qr: '', url: '' });
+      }
+    } catch (err) {
+      if (err?.response?.status === 404) {
+        toast.error('URL not found', { position: 'top-center', autoClose: 3000 });
+      } else {
+        toast.error('Failed to fetch QR code', { position: 'top-center', autoClose: 3000 });
+      }
+      setQrModal({ open: false, qr: '', url: '' });
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleOpenUpdateModal = (url) => {
+    setUpdateFormData(url);
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateModalClose = () => {
+    setShowUpdateModal(false);
+    setUpdateFormData(null);
+  };
+
+  useEffect(() => {
+    if (showUpdateModal && updateFormData) {
+      setUpdateForm({
+        originalUrl: updateFormData.originalUrl || '',
+        customAlias: updateFormData.shortUrl || '',
+        expirationDate: '', // Always empty for update
+        password: updateFormData.password || ''
+      });
+    }
+  }, [showUpdateModal, updateFormData]);
+
+  const handleUpdateFormChange = (field, value) => {
+    setUpdateForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {};
+    if (updateForm.originalUrl) payload.redirectUrl = updateForm.originalUrl;
+    if (updateForm.customAlias) payload.alias = updateForm.customAlias;
+    if (updateForm.expirationDate) {
+      const dateObj = new Date(updateForm.expirationDate);
+      if (!isNaN(dateObj.getTime())) {
+        payload.expireAt = dateObj.toISOString();
+      }
+    }
+    // If password is empty string, send null
+    payload.password = updateForm.password ? updateForm.password : null;
+    try {
+      const res = await updateShortUrl(updateFormData.shortUrl, payload);
+      toast.success(res.message || 'Short URL updated!', { position: 'top-center' });
+      setShowUpdateModal(false);
+      setUpdateFormData(null);
+      // Optionally refresh dashboard URLs here
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update short URL', { position: 'top-center' });
+    }
+  };
+
+  // Utility to format DD/MM/YYYY to readable date
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      const [day, month, year] = dateStr.split('/');
+      return `${year}-${month}-${day}`;
+    }
+    return dateStr;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -176,7 +313,7 @@ const DashboardComponent = () => {
             <p className="text-gray-600">Welcome back! Here&appos;s whats happening with your URLs.</p>
           </div>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <select
+            {/* <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
               className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -185,7 +322,7 @@ const DashboardComponent = () => {
               <option value="7d">Last 7 days</option>
               <option value="30d">Last 30 days</option>
               <option value="90d">Last 90 days</option>
-            </select>
+            </select> */}
             <button 
               onClick={handleCreateUrl}
               className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -233,13 +370,45 @@ const DashboardComponent = () => {
           {/* Clicks Over Time */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-6">Clicks Over Time</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={clicksData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="clicks" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={clicksData} margin={{ top: 24, right: 32, left: 0, bottom: 16 }}>
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
+                  </linearGradient>
+                  <filter id="barShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#6366f1" floodOpacity="0.08" />
+                  </filter>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" tick={{ fill: '#334155', fontSize: 15, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#334155', fontSize: 15, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  wrapperStyle={{ borderRadius: 14, boxShadow: '0 6px 32px rgba(0,0,0,0.10)', background: '#fff', border: '1px solid #e5e7eb', padding: 12 }}
+                  labelStyle={{ color: '#6366f1', fontWeight: 700, fontSize: 16 }}
+                  itemStyle={{ color: '#334155', fontSize: 15 }}
+                  content={({ active, payload, label }) =>
+                    active && payload && payload.length ? (
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 min-w-[120px]">
+                        <div className="font-semibold text-blue-600 mb-1">{label}</div>
+                        <div className="text-lg font-bold text-gray-800">{payload[0].value} Clicks</div>
+                      </div>
+                    ) : null
+                  }
+                />
+                <Bar
+                  dataKey="clicks"
+                  fill="url(#barGradient)"
+                  radius={[10, 10, 0, 0]}
+                  barSize={28}
+                  stroke="#6366f1"
+                  strokeWidth={1.5}
+                  background={{ fill: '#f3f4f6' }}
+                  filter="url(#barShadow)"
+                  isAnimationActive={true}
+                  animationDuration={900}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -303,8 +472,7 @@ const DashboardComponent = () => {
               </div>
             </div>
           </div>
-
-          <div className="overflow-x-auto max-h-160">
+          <div className="overflow-y-auto" style={{ maxHeight: '420px' }}>
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -334,18 +502,27 @@ const DashboardComponent = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loadingUrls ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading URLs...</td>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">Loading URLs...</td>
                   </tr>
                 ) : urlsError ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-red-500">{urlsError}</td>
+                    <td colSpan={7} className="px-6 py-8 text-center text-red-500">{urlsError}</td>
                   </tr>
                 ) : recentUrls.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No URLs found</td>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No URLs found</td>
                   </tr>
                 ) : (
-                  recentUrls.map((url) => (
+                  (showAllUrls ? recentUrls : recentUrls.slice(0, 10))
+                    .filter(url => {
+                      const term = searchTerm.trim().toLowerCase();
+                      if (!term) return true;
+                      return (
+                        url.originalUrl?.toLowerCase().includes(term) ||
+                        url.shortUrl?.toLowerCase().includes(term)
+                      );
+                    })
+                    .map((url) => (
                   <tr key={url.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -373,7 +550,7 @@ const DashboardComponent = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-500">
-                        {url.createdAt}
+                        {formatDate(url.createdAt)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -421,23 +598,103 @@ const DashboardComponent = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button className="text-gray-400 hover:text-gray-600">
+                      <div className="flex items-center gap-2 relative">
+                        <button className="text-gray-400 hover:text-gray-600" title="Open Short URL" onClick={() => handleOpenUrl(url.shortUrl)}>
                           <ExternalLink className="w-4 h-4" />
                         </button>
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical className="w-4 h-4" />
+                        <button className="text-gray-400 hover:text-gray-600" title="More" onClick={() => setMenuOpenId(menuOpenId === url.id ? null : url.id)}>
+                          <MoreVertical className="w-5 h-5" />
                         </button>
+                        {menuOpenId === url.id && (
+                          <div className="absolute right-0 top-8 z-20 bg-white border rounded-lg shadow-lg py-2 w-40">
+                            <button
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-gray-700"
+                              onClick={() => { handleViewQrCode(url.shortUrl); setMenuOpenId(null); }}
+                            >
+                              Show QR Image
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-blue-600"
+                              onClick={() => { handleOpenUpdateModal(url); setMenuOpenId(null); }}
+                            >
+                              Update URL
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-red-600"
+                              onClick={() => { handleDeleteUrl(url.id); setMenuOpenId(null); }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
+  {/* QR Modal */}
+  {qrModal.open && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 relative flex flex-col items-center w-full max-w-md border border-gray-200 animate-fadeIn">
+        <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" onClick={() => setQrModal({ open: false, qr: '', url: '' })}>
+          <X className="w-6 h-6" />
+        </button>
+        <div className="flex flex-col items-center gap-3 mb-4">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full shadow">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2v1h1V5h-1z" />
+              <path d="M11 4a1 1 0 10-2 0v1a1 1 0 002 0V4zM10 7a1 1 0 011 1v1h2a1 1 0 110 2h-3a1 1 0 01-1-1V8a1 1 0 01-1-1zM16 10a1 1 0 100-2 1 1 0 000 2zM9 13a1 1 0 011-1h1a1 1 0 110 2v2a1 1 0 11-2 0v-3zM13 12a1 1 0 100-2 1 1 0 000 2zM16 16a1 1 0 100-2 1 1 0 000 2zM16 13a1 1 0 100-2 1 1 0 000 2z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">QR Code for <span className="text-blue-600">{qrModal.url}</span></h3>
+        </div>
+        <div className="flex flex-col items-center gap-2 mt-2">
+          {qrLoading ? (
+            <span className="text-gray-500 text-base font-medium">Loading QR code...</span>
+          ) : qrModal.qr ? (
+            <img src={qrModal.qr} alt="QR Code" className="w-56 h-56 rounded-xl border-2 border-blue-100 shadow-lg mb-2" />
+          ) : (
+            <span className="text-gray-400 text-base font-medium">No QR code available</span>
+          )}
+          {qrModal.qr && (
+            <button
+              className="mt-3 px-5 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow hover:from-blue-600 hover:to-purple-700 font-semibold transition-all"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = qrModal.qr;
+                link.download = `qr-code-${qrModal.url}.png`;
+                link.click();
+              }}
+            >
+              Download QR Code
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
                   </tr>
                 ))) }
               </tbody>
             </table>
           </div>
-
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-          </div>
+          {recentUrls.length > 10 && !showAllUrls && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-center">
+              <button
+                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg shadow hover:from-blue-600 hover:to-purple-700 transition-all"
+                onClick={() => setShowAllUrls(true)}
+              >
+                Show More
+              </button>
+            </div>
+          )}
+          {recentUrls.length > 10 && showAllUrls && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-center">
+              <button
+                className="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow hover:bg-gray-300 transition-all"
+                onClick={() => setShowAllUrls(false)}
+              >
+                Show Less
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Create URL Modal */}
@@ -493,7 +750,7 @@ const DashboardComponent = () => {
                       </label>
                       <div className="flex items-stretch">
                         <div className="px-5 py-4 bg-gradient-to-r from-gray-100 to-gray-50 border-2 border-r-0 border-gray-200 rounded-l-xl text-gray-600 font-medium flex items-center">
-                          short.ly/
+                          Custom
                         </div>
                         <input
                           type="text"
@@ -511,7 +768,7 @@ const DashboardComponent = () => {
                 {/* Settings Grid */}
                 <div className="grid md:grid-cols-2 gap-8">
                   {/* Left Column - Basic Settings */}
-                  <div className="space-y-6">
+                  {/* <div className="space-y-6">
                     <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100">
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                         <Tag className="w-5 h-5 text-green-600" />
@@ -551,7 +808,7 @@ const DashboardComponent = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Right Column - Advanced Settings */}
                   <div className="space-y-6">
@@ -657,6 +914,83 @@ const DashboardComponent = () => {
                   >
                     <Link className="w-5 h-5" />
                     Create Short URL
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Update URL Modal */}
+        {showUpdateModal && updateFormData && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="relative bg-gradient-to-r from-blue-500 to-purple-600 text-white p-8 rounded-t-2xl">
+                <button
+                  onClick={handleUpdateModalClose}
+                  className="absolute top-6 right-6 p-2 hover:bg-transparent hover:bg-opacity-20 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-transparent bg-opacity-20 rounded-xl">
+                    <Link className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold">Update Short URL</h2>
+                    <p className="text-blue-100 mt-1">Edit your short link details</p>
+                  </div>
+                </div>
+              </div>
+              {/* Modal Body */}
+              <form className="p-8 space-y-8 custom-scrollbar overflow-y-auto max-h-[80vh]" onSubmit={handleUpdateSubmit}>
+                <div className="space-y-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Original URL</label>
+                  <input
+                    type="url"
+                    value={updateForm.originalUrl}
+                    onChange={e => handleUpdateFormChange('originalUrl', e.target.value)}
+                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500 focus:ring-opacity-20 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400"
+                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Custom Alias</label>
+                  <input
+                    type="text"
+                    value={updateForm.customAlias}
+                    onChange={e => handleUpdateFormChange('customAlias', e.target.value)}
+                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500 focus:ring-opacity-20 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400"
+                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Expiration Date</label>
+                  <input
+                    type="date"
+                    value={updateForm.expirationDate}
+                    onChange={e => handleUpdateFormChange('expirationDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500 focus:ring-opacity-20 focus:border-blue-500 transition-all duration-200 text-gray-700"
+                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Password</label>
+                  <input
+                    type="password"
+                    value={updateForm.password}
+                    onChange={e => handleUpdateFormChange('password', e.target.value)}
+                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500 focus:ring-opacity-20 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400"
+                  />
+                </div>
+                <div className="flex items-center justify-center gap-4 pt-8 border-t-2 border-gray-100">
+                  <button
+                    type="button"
+                    onClick={handleUpdateModalClose}
+                    className="px-8 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2"
+                  >
+                    <X className="w-5 h-5" />
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
+                  >
+                    <Link className="w-5 h-5" />
+                    Update Short URL
                   </button>
                 </div>
               </form>

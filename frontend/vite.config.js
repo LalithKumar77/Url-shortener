@@ -12,7 +12,7 @@ export default defineConfig({
   // Exclude known frontend routes (login, profile, dashboard, etc.) so they
   // are handled by the SPA and not proxied. Adjust the excluded list as needed.
   // Assumption: short ids are alphanumeric with optional - or _, length 6-12.
-  '^/(?!(?:login|profile|dashboard|register|forgot|reset|about|contact|home|main)$)([A-Za-z0-9_-]{6,12})$': {
+  '^/(?!(?:login|profile|dashboard|register|forgot|reset|about|contact|home|main)$)([A-Za-z0-9_-]{4,32})$': {
         target: 'http://localhost:3000',
         changeOrigin: true,
       }
