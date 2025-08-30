@@ -132,7 +132,7 @@ function Header() {
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300 group-hover:w-full"></span>
                 </a>
               </li>
-              <li>
+              {/* <li>
                 <a 
                   href="#about" 
                   onClick={(e) => handleNav(e, 'about')}
@@ -141,11 +141,11 @@ function Header() {
                   About
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300 group-hover:w-full"></span>
                 </a>
-              </li>
+              </li> */}
               <li>
                 <a 
                   href="#services" 
-                  onClick={(e) => handleNav(e, 'services')}
+                  onClick={(e) => handleNav(e, 'about')}
                   className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300 relative group"
                 >
                   Services

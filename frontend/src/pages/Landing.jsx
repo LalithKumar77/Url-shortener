@@ -6,6 +6,7 @@ import HowItWorksSection from '../components/HowItWorks';
 import AnalyticsSection from '../components/AnalyticsSection';
 import CTASection from '../components/CTASection';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const LandingPage = () => {
   return (
@@ -18,6 +19,7 @@ const LandingPage = () => {
       {localStorage.getItem('isSignedIn') !== 'true' && <CTASection />}
       <AnalyticsSection />
       <ContactSection />
+      <Footer />
     </div>
     </>
   );
