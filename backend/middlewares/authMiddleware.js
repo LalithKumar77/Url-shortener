@@ -44,6 +44,16 @@ async function  verifyTokens(req,res,next){
         );
         // update top-level refreshToken for backward compatibility
         // user.refreshToken = newRefreshToken;
+        // Removing expired refresh tokens before saving
+        const now = Date.now();
+        user.refreshTokens = user.refreshTokens.filter(rt => {
+            try {
+                const payload = verifyToken(rt.token, process.env.JWT_REFRESH_SECRET);
+                return payload && payload.exp * 1000 > now;
+            } catch {
+                return false;
+            }
+        });
         await user.save();
         // set new cookies
         const isProd = process.env.PRODUCTION === 'true';
