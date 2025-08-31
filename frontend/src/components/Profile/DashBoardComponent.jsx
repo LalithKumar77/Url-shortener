@@ -648,7 +648,16 @@ const DashboardComponent = () => {
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-mono text-gray-800">
                               {revealedPwId === url.id && url.password ? url.password : '••••••'}
-                            </span>
+                            </span><button
+                              onClick={() => url.password ? toggleReveal(url.id) : null}
+                              type="button"
+                              aria-label={revealedPwId === url.id ? 'Hide password' : 'Show password'}
+                              title={url.password ? (revealedPwId === url.id ? 'Hide password' : 'Show password') : 'Password not provided by backend'}
+                              className={`p-1 ${url.password ? 'text-gray-500 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                              disabled={!url.password}
+                            >
+                              {revealedPwId === url.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                             <button
                               onClick={() => url.password ? copyPassword(url.password) : null}
                               type="button"
