@@ -1,4 +1,6 @@
 import Url from '../models/urlModel.js';
+import Analytics from '../models/analyticsModel.js';
+import getGeoInfo from '../utils/ipchecking.js';
 
 export async function passwordFormMiddleware(req, res, next) {
     try {
@@ -7,7 +9,7 @@ export async function passwordFormMiddleware(req, res, next) {
         if (!urlEntry) {
             return res.status(404).send('URL not found');
         }
-
+        
         // If no password, allow redirect
         if (!urlEntry.password) {
             req.urlEntry = urlEntry;
@@ -51,7 +53,25 @@ export async function passwordFormMiddleware(req, res, next) {
                 { shortId: urlEntry.shortId },
                 { $push: { history: { timestamp: Date.now() } } }
             );
-            
+
+            // Track analytics for password-protected URLs
+            try {
+                const userAgent = req.headers['user-agent'] || null;
+                const referrer = req.headers['referer'] || null;
+                const geoDetails = await getGeoInfo(req);
+                await Analytics.create({
+                    urlId: urlEntry._id,
+                    userId: urlEntry.user,
+                    ip: geoDetails.ip,
+                    userAgent,
+                    referrer,
+                    city: geoDetails.city || null,
+                    country: geoDetails.country || null
+                });
+            } catch (err) {
+                console.error('Error creating analytics for password-protected URL:', err);
+            }
+
             // For external redirects after POST, use meta refresh for better browser compatibility
             return res.send(`
                 <!DOCTYPE html>
