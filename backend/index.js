@@ -65,9 +65,9 @@ app.get('/', (req, res) => {
 // });
 
 
-
-app.use('/', urlRoute);
 app.use('/api/auth', authRoute);
+app.use('/', urlRoute);
+
 app.use('/api', userRouter);
 
 
