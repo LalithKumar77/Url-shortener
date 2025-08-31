@@ -4,18 +4,27 @@ import {
     getRedirectUrl,
     getUrlsByUserId,
     createUrlPassword,
-    createCustomAlias
+    createCustomAlias,
+    createAdvancedCustomUrl,
+    getQrCodeByShortId,
+    updateShortUrlDetails,
+    getUrlClicksByDayAndCountry
 } from '../controllers/urlController.js';
 import verifyTokens from '../middlewares/authMiddleware.js';
 import { passwordFormMiddleware } from '../middlewares/urlPasswordMiddleware.js';
 const router = express.Router();
 
-router.post('/api/url',verifyTokens,generateShortUrl);
+router.post('/api/url',generateShortUrl);
 router.all('/:shortId', passwordFormMiddleware, getRedirectUrl);
 
 
-router.get('/api/user/urls', verifyTokens, getUrlsByUserId);
-router.post('/api/user/url/alias',verifyTokens,createCustomAlias);
-router.post('/api/user/url/password', verifyTokens, createUrlPassword);
+router.use(verifyTokens);
+router.put('/api/user/url/:shortId', updateShortUrlDetails);
+router.get('/api/user/urls', getUrlsByUserId);
+router.post('/api/user/url/alias', createCustomAlias);
+router.post('/api/user/url/password', createUrlPassword);
+router.post('/api/user/url/advanced', createAdvancedCustomUrl);
+router.get('/api/url/:shortId/qr', getQrCodeByShortId);
+router.get('/api/user/url/analytics', getUrlClicksByDayAndCountry);
 
 export default router;

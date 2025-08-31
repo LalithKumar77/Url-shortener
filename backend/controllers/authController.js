@@ -6,7 +6,10 @@ import crypto from "crypto";
 import Url from "../models/urlModel.js"; // Import the Url model
 import { UAParser } from "ua-parser-js";
 import getGeoInfo from "../utils/ipchecking.js";
-import Check from "../models/check.js";
+
+
+
+
  async function createUserHandler(req, res) {
     const { username, password, gmail } = req.body;
 
@@ -74,8 +77,13 @@ async function loginHandler(req, res) {
         const result = parser.getResult();
             const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;        
             console.log(`User Ip ${ip}`);        
-        const details = await getGeoInfo(req);
-        const location = details.city + details.country;
+       let location;
+        if (ip === "127.0.0.1" || ip === "::1") {
+            location = "localdev";
+        } else {
+            const details = await getGeoInfo(req);
+            location = details.city ? details.city + ", " + details.country : details.country;
+        }
         const userDevice = {
             deviceType: result.device.type || "Desktop", 
             os: result.os.name, 
@@ -93,12 +101,6 @@ async function loginHandler(req, res) {
         // keep top-level refreshToken for backward compatibility
         // user.refreshToken = refreshToken;
         await user.save();
-
-        const check = new Check({
-            user: user._id,
-            Details: [userDevice]
-        });
-        await check.save();
 
         const isProd = process.env.PRODUCTION === 'true';
         res.cookie('accessToken', accessToken, {
