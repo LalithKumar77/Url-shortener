@@ -71,3 +71,14 @@ export async function updateShortUrl(shortId, data) {
         throw error;
     }
 }
+
+// Get analytics for user's URLs (clicks by day, country stats, unique visitors)
+export async function getUserUrlAnalytics() {
+    try {
+        const response = await axios.get(`${API_URL}/api/user/url/analytics`, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user URL analytics:', error);
+        throw error;
+    }
+}
