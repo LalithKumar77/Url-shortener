@@ -11,11 +11,6 @@ const analyticsSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
-    eventType: {
-        type: String,
-        enum: ["visit", "click"],
-        default: "visit"
-    },
     timestamp: {
         type: Date,
         default: Date.now
@@ -29,6 +24,10 @@ const analyticsSchema = new mongoose.Schema({
         default: null
     },
     referrer: {
+        type: String,
+        default: null
+    },
+    city:{
         type: String,
         default: null
     },

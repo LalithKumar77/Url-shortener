@@ -27,6 +27,10 @@ const urlSchema = new mongoose.Schema({
     expireAt:{
         type: Date,
         default:null
+    },
+    qrCode: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 
