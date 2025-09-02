@@ -75,6 +75,7 @@ export async function getRedirectUrl(req, res) {
 
 
 export async function getUrlsByUserId(req,res) {
+    console.log("entered in to getUrlsByUserId");
     try {
         const userId = req.user.id;
         const urls = await Url.find({ user: userId });
@@ -94,6 +95,7 @@ export async function getUrlsByUserId(req,res) {
         }));
         return res.status(200).json(reponse);
     } catch (error) {
+        console.error('Error in getUrlsByUserId:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
     
@@ -214,6 +216,23 @@ export async function createAdvancedCustomUrl(req, res) {
             message: "Custom URL created successfully",
             url
         });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || error });
+    }
+}
+export async function deleteShortUrl(req, res) {
+    try {
+        const { shortId } = req.params;
+        if (!shortId) {
+            return res.status(400).json({ message: "shortId is required" });
+        }
+        const url = await Url.findOneAndDelete({ shortId });
+        if (!url) {
+            return res.status(404).json({ message: "URL not found" });
+        }
+        // Delete analytics for this shortId
+        await Analytics.deleteMany({ urlId: url._id });
+        return res.status(200).json({ message: "Short URL and analytics deleted successfully", shortId });
     } catch (error) {
         return res.status(500).json({ message: error.message || error });
     }

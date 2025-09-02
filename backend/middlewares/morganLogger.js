@@ -18,7 +18,8 @@ const formatIp = (ip) => {
 
 
 const customMorganFormat = (tokens, req, res) => {
-  const ip = formatIp(req.ip);
+  let ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+  ip = formatIp(ip);
   return [
     chalk.green(`[${new Date().toISOString()}]`),
     chalk.blue(tokens.method(req, res)),

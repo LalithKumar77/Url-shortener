@@ -9,7 +9,6 @@ import express from 'express';
 import urlRoute from './routes/url.js';
 import cors from 'cors';
 import connectDB from './db/db.js';
-import path from 'path';
 import morganLogger from './middlewares/morganLogger.js';
 import authRoute from './routes/authRoute.js';
 import cookieParser from 'cookie-parser';
@@ -45,7 +44,7 @@ app.use((req, res, next) => {
     console.log('--- Incoming Request ---');
     // console.log('Method:', req.method);
     // console.log('URL:', req.url);
-    console.log('Headers:', req.headers.cookie);
+    console.log('Cookies:', req.headers.cookie);
     // console.log('Query:', req.query);
     // console.log('Params:', req.params);
     console.log('Body:', req.body);

@@ -26,9 +26,10 @@ async function  verifyTokens(req,res,next){
     console.log("Refresh token is valid", isRefreshTokenValid);
     try {
         // find user where the refreshTokens array contains this token
+        console.log("RefreshToken data before checking ",isRefreshTokenValid);
         const user = await User.findOne({ _id: isRefreshTokenValid.id, 'refreshTokens.token': refreshToken });
         if(!user){
-            console.log('user not found');
+            console.log('user not found in auth middleware', user);
             return res.status(403).json({message:"User not found"});
         }
         const payload = {
