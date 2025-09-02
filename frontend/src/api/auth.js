@@ -1,12 +1,8 @@
-import axios from "axios";
-const API_URL = import.meta.env.VITE_API_URL + "/api/auth";
+import { apiClient } from "./axiosConfig";
 
 export async function login({ gmail, password }) {
 	try {
-		const response = await axios.post(`${API_URL}/login`,
-			{ gmail, password },
-			{ withCredentials: true } 
-		);
+		const response = await apiClient.post(`/api/auth/login`, { gmail, password });
 		console.log(`response :`, response);
 		// On success, set localStorage
 		if (response.data && response.data.user) {
@@ -32,11 +28,7 @@ export async function login({ gmail, password }) {
 
 export async function register({ username, gmail, password }) {
 	try{
-		const response = await axios.post(`${API_URL}/signup`,{
-			username,
-			gmail,
-			password
-		});
+	const response = await apiClient.post(`/api/auth/signup`, { username, gmail, password });
 		// On success, set localStorage
 		if (response.data && response.data.user) {
 			const userWithSignIn = { ...response.data.user, isSignedIn: true };
@@ -60,12 +52,7 @@ export async function register({ username, gmail, password }) {
 
 export async function updatePassword({ currentPassword, newPassword }) {
 	try {
-		const response = await axios.put(`${API_URL}/update-password`, {
-			password: currentPassword,
-			newPassword
-		},
-		{ withCredentials: true }
-		);
+	const response = await apiClient.put(`/api/auth/update-password`, { password: currentPassword, newPassword });
 		return { data: response.data };
 	} catch (error) {
 		let message = "Network error. Please try again.";
@@ -84,7 +71,7 @@ export async function updatePassword({ currentPassword, newPassword }) {
 
 export async function logout() {
 	try {
-		const response = await axios.post(`${API_URL}/logout`, {}, { withCredentials: true });
+		const response = await apiClient.post(`/api/auth/logout`, {});
 		if (response.status === 200) {
 			localStorage.clear();
 		}
@@ -102,4 +89,44 @@ export async function logout() {
 		}
 		return { error: message };
 	}	
+}
+
+export async function validateResetToken(token) {
+	try {
+		const response = await apiClient.post(`/api/auth/validate-reset-token`, { token });
+		return { data: response.data };
+	} catch (error) {
+		let message = 'Network error. Please try again.';
+		if (error.response && error.response.data && error.response.data.error) {
+			message = error.response.data.error;
+		}
+		return { error: message };
+	}
+}
+
+export async function resetPassword({ token, password }) {
+	try {
+		const response = await apiClient.post(`/api/auth/reset-password`, { token, password });
+		return { data: response.data };
+	} catch (error) {
+		let message = 'Network error. Please try again.';
+		console.log(error);
+		if (error.response && error.response.data && error.response.data.error) {
+			message = error.response.data.error;
+		}
+		return { error: message };
+	}
+}
+
+export async function forgotPassword({ gmail }) {
+	try {
+		const response = await apiClient.post(`/api/auth/forgot-password`, { gmail });
+		return { data: response.data };
+	} catch (error) {
+		let message = 'Network error. Please try again.';
+		if (error.response && error.response.data && error.response.data.error) {
+			message = error.response.data.error;
+		}
+		return { error: message };
+	}
 }

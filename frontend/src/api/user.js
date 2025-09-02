@@ -1,12 +1,8 @@
-import axios from "axios";
+import { apiClient } from "./axiosConfig";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-export async function profilepic(photo){
+export async function profilepic(photo) {
     try {
-        const response  = await axios.post(`${API_URL}/api/user/profilepic`, {
-            photo: photo
-        }, { withCredentials: true });
+        const response = await apiClient.post(`/api/user/profilepic`, { photo });
         return response.data;
     } catch (error) {
         console.error("Error uploading profile picture:", error);
@@ -14,13 +10,12 @@ export async function profilepic(photo){
     }
 }
 
-export async function deleteProfile(){
-    try{
-        const response = await axios.delete(`${API_URL}/api/user/profile`, { withCredentials: true });
+export async function deleteProfile() {
+    try {
+        const response = await apiClient.delete(`/api/user/profile`);
         return response.data;
-    }catch(error){
+    } catch (error) {
         console.error("Error deleting profile:", error);
         throw error;
     }
-
 }

@@ -9,22 +9,15 @@ import {
   X, Lock,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { getUrlsStats } from '../../api/url';
-import { createAdvancedUrl } from '../../api/url';
-import { getQrCodeForShortUrl } from '../../api/url';
-import { updateShortUrl } from '../../api/url';
-import { getUserUrlAnalytics } from '../../api/url';
-// Handler to open short URL in new tab
-const handleOpenUrl = (shortUrl) => {
-  window.open(shortUrl, '_blank');
-};
+import { 
+  getUrlsStats, 
+  createAdvancedUrl, 
+  getQrCodeForShortUrl, 
+  updateShortUrl, 
+  deleteShortUrl, 
+  getUserUrlAnalytics 
+} from '../../api/url';
 
-// Handler to delete URL (mock, replace with API call)
-const handleDeleteUrl = (id) => {
-  setRecentUrls(urls => urls.filter(url => url.id !== id));
-  toast.success('URL deleted!', { position: 'top-center' });
-  // For real API: await deleteUrlApi(id); and refresh list
-};
 import { toast } from 'react-toastify';
 
 
@@ -67,6 +60,27 @@ const DashboardComponent = () => {
   // Click rate: average clicks per URL
   const clickRate = urls > 0 ? (totalClicks / urls).toFixed(2) : 0;
   
+  // Handler to open short URL in new tab
+const handleOpenUrl = (shortUrl) => {
+  window.open(shortUrl, '_blank');
+};
+
+// Handler to delete URL using API
+const handleDeleteUrl = async (shortId) => {
+  try {
+    const res = await deleteShortUrl(shortId);
+    if (res && res.message) {
+      toast.success(res.message, { position: 'top-center' });
+      // Refresh URLs after deletion
+      window.location.reload();
+    } else {
+      toast.error('Failed to delete URL', { position: 'top-center' });
+    }
+  } catch (err) {
+    toast.error(err?.response?.data?.message || 'Failed to delete URL', { position: 'top-center' });
+  }
+};
+
   useEffect(() => {
     let mounted = true;
     async function fetchUrls() {
@@ -174,11 +188,11 @@ const DashboardComponent = () => {
           color: colors[idx % colors.length]
         }));
         
-        console.log('Processed Analytics Data:', {
-          clicksByDay,
-          topCountriesArr,
-          visitorSum
-        }); // Debug log
+        // console.log('Processed Analytics Data:', {
+        //   clicksByDay,
+        //   topCountriesArr,
+        //   visitorSum
+        // });
         
         if (mounted) {
           setClicksData(clicksByDay);
@@ -365,10 +379,10 @@ const DashboardComponent = () => {
     payload.password = updateForm.password ? updateForm.password : null;
     try {
       const res = await updateShortUrl(updateFormData.shortUrl, payload);
-      toast.success(res.message || 'Short URL updated!', { position: 'top-center' });
+      await toast.success(res.message || 'Short URL updated!', { position: 'top-center' });
       setShowUpdateModal(false);
       setUpdateFormData(null);
-      // Optionally refresh dashboard URLs here
+      window.location.reload();
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to update short URL', { position: 'top-center' });
     }
@@ -391,7 +405,7 @@ const DashboardComponent = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
-            <p className="text-gray-600">Welcome back! Here's whats happening with your URLs.</p>
+            <p className="text-gray-600">Welcome back! Here&apos;s whats happening with your URLs.</p>
           </div>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
             <button 
@@ -698,7 +712,11 @@ const DashboardComponent = () => {
                             </button>
                             <button
                               className="w-full px-4 py-2 text-left hover:bg-gray-100 text-red-600"
-                              onClick={() => { handleDeleteUrl(url.id); setMenuOpenId(null); }}
+                              onClick={() => {
+                                toast.info('Deleting URL...', { position: 'top-center', autoClose: 2000 });
+                                handleDeleteUrl(url.id);
+                                setMenuOpenId(null);
+                              }}
                             >
                               Delete
                             </button>

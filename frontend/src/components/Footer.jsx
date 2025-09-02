@@ -1,11 +1,9 @@
-import React from "react";
-
 const Footer = () => {
   return (
     <footer className="w-full bg-white border-t border-gray-200 py-6 mt-12 text-gray-600">
       <div className="container mx-auto flex flex-col md:flex-row items-center justify-between px-4">
         <div className="flex items-center gap-3 mb-4 md:mb-0">
-          <img src="/src/assets/Logo.jpeg" alt="URL Shortener Logo" className="h-8 w-8 rounded-full border" />
+          <img src="./src/assets/Logo.jpeg" alt="URL Shortener Logo" className="h-8 w-8 rounded-full border" />
           <span className="font-semibold text-lg tracking-wide">URL Shortener</span>
         </div>
         <nav className="flex gap-6 text-sm">

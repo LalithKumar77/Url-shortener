@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Lock, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
-import axios from 'axios';
-import InputField from '../../components/InputField'; // Adjust import path as needed
+import { validateResetToken, resetPassword } from '../../api/auth';
+import { toast } from 'react-toastify';
+import InputField from '../../components/InputField'; 
 
-// Backend API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
@@ -33,14 +32,11 @@ const ResetPasswordPage = () => {
   }, []);
 
   const validateToken = async (tokenToValidate) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/validate-reset-token`, {
-        token: tokenToValidate
-      });
-
-      setTokenValid(response.data.valid);
-    } catch (error) {
-      console.error('Token validation error:', error);
+    const res = await validateResetToken(tokenToValidate);
+    if (res.data) {
+      setTokenValid(res.data.valid);
+    } else {
+      console.error('Token validation error:', res.error);
       setTokenValid(false);
     }
   };
@@ -86,25 +82,15 @@ const ResetPasswordPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
-        token: token,
-        password: formData.password
-      });
-
-      if (response.status === 200) {
+      const res = await resetPassword({ token, password: formData.password });
+      if (res.data) {
         console.log('Password reset successful');
+        toast.success(res.data.message || 'Password reset successful', { position: 'top-center' });
         setResetSuccess(true);
-      }
-    } catch (error) {
-      console.error('Password reset error:', error);
-      
-      // Handle different types of errors
-      if (error.response && error.response.data && error.response.data.message) {
-        setErrors({ general: error.response.data.message });
-      } else if (error.message) {
-        setErrors({ general: error.message });
       } else {
-        setErrors({ general: 'An error occurred. Please try again.' });
+        const msg = res.error || 'Failed to reset password';
+        setErrors({ general: msg });
+        toast.error(msg, { position: 'top-center' });
       }
     } finally {
       setIsLoading(false);

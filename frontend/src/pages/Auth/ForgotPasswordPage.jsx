@@ -1,11 +1,12 @@
 import { useState } from "react";
-import axios from "axios";
+import { forgotPassword } from "../../api/auth";
+import { toast } from 'react-toastify';
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import InputField from "../../components/InputField";
 import { Link } from "react-router-dom";
 
 const ForgotPasswordPage = () => {
-  const BASEURL = import.meta.env.VITE_API_URL+"/api/auth";
+  // using centralized apiClient
   const [gmail, setGmail] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,16 +33,15 @@ const ForgotPasswordPage = () => {
     if (!validateGmail()) return;
     setIsLoading(true);
     try {
-      const response = await axios.post(`${BASEURL}/forgot-password`, {
-        gmail,
-      });
-      if (response.status === 200) {
+      const res = await forgotPassword({ gmail });
+      if (res.data) {
+        toast.success(res.data.message || 'Reset link sent', { position: 'top-center' });
         setEmailSent(true);
       } else {
-        setError(response.data.error || "Failed to send reset link");
+        const msg = res.error || "Failed to send reset link";
+        toast.error(msg, { position: 'top-center' });
+        setError(msg);
       }
-    } catch (err) {
-      setError(err.response?.data?.error || "Network error");
     } finally {
       setIsLoading(false);
     }
